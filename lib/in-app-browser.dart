@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class InAppView extends StatefulWidget {
   const InAppView({Key? key}) : super(key: key);
@@ -74,8 +75,46 @@ class _InAppViewState extends State<InAppView> {
             pullToRefreshController: pullToRefreshController,
             onWebViewCreated: (controller) {
               webViewController = controller;
+              webViewController?.addJavaScriptHandler(
+                  handlerName: 'handlerFoo',
+                  callback: (args) {
+                    // return data to JavaScript side!
+                    return {'bar': 'bar_value', 'baz': 'baz_value'};
+                  });
+
+              webViewController?.addJavaScriptHandler(
+                  handlerName: 'handlerFooWithArgs',
+                  callback: (args) {
+                    print(args);
+                    // it will print: [1, true, [bar, 5], {foo: baz}, {bar: bar_value, baz: baz_value}]
+                  });
             },
-            androidOnPermissionRequest: (controller, origin, resources) async {
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              var url = navigationAction.request.url;
+              if (![
+                "http",
+                "https",
+                "file",
+                "chrome",
+                "data",
+                "javascript",
+                "about"
+              ].contains(url!.scheme)) {
+                String? encodedURL;
+                if (url.scheme.contains('whatsapp')) {
+                  encodedURL = 'whatsapp://send?' + url.query;
+                }
+                if (await canLaunch(encodedURL ?? url.toString())) {
+                  // Launch the App
+                  await launch(encodedURL ?? url.toString());
+                  // and cancel the request
+                  return NavigationActionPolicy.CANCEL;
+                }
+              }
+              return NavigationActionPolicy.ALLOW;
+            },
+            androidOnPermissionRequest: (InAppWebViewController controller,
+                String origin, List<String> resources) async {
               return PermissionRequestResponse(
                   resources: resources,
                   action: PermissionRequestResponseAction.GRANT);
@@ -90,6 +129,9 @@ class _InAppViewState extends State<InAppView> {
               if (progress == 100) {
                 pullToRefreshController.endRefreshing();
               }
+            },
+            onConsoleMessage: (controller, consoleMessage) {
+              print(consoleMessage);
             },
           ),
         ),

@@ -32,6 +32,8 @@ dependencies:
   flutter_inappwebview: ^5.3.2
   # To handle permissions
   permission_handler: ^8.1.6
+  # To handle launch URL to make calls etc
+  url_launcher:
 
 dev_dependencies:
   flutter_test:
