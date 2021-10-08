@@ -1,8 +1,10 @@
 import 'dart:collection';
+import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -20,10 +22,18 @@ class _InAppViewState extends State<InAppView> {
       crossPlatform: InAppWebViewOptions(
         useShouldOverrideUrlLoading: true,
         mediaPlaybackRequiresUserGesture: false,
+        javaScriptEnabled: true,
+        javaScriptCanOpenWindowsAutomatically: true,
+        useOnDownloadStart: true,
       ),
       android: AndroidInAppWebViewOptions(
-        useHybridComposition: true,
-      ),
+          useHybridComposition: true,
+          domStorageEnabled: true,
+          databaseEnabled: true,
+          clearSessionCache: true,
+          thirdPartyCookiesEnabled: true,
+          allowFileAccess: true,
+          allowContentAccess: true),
       ios: IOSInAppWebViewOptions(
         allowsInlineMediaPlayback: true,
       ));
@@ -130,8 +140,16 @@ class _InAppViewState extends State<InAppView> {
                 pullToRefreshController.endRefreshing();
               }
             },
+            gestureRecognizers: Set()
+              ..add(Factory<TapGestureRecognizer>(() => TapGestureRecognizer()
+                ..onTapDown = (TapDownDetails details) {
+                  print(details.globalPosition.dx);
+                })),
+            onPrint: (controller, url) {
+              log(url!.path);
+            },
             onConsoleMessage: (controller, consoleMessage) {
-              print(consoleMessage);
+              log(consoleMessage.message);
             },
           ),
         ),
